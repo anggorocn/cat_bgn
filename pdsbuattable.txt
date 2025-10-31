@@ -1,0 +1,492 @@
+CREATE OR REPLACE FUNCTION public.buat_table_ujian_p()
+  RETURNS trigger AS
+$BODY$
+DECLARE
+temprowid integer;
+tempstatus CHARACTER VARYING(1);
+tempinfo TEXT;
+tempquery TEXT;
+rec RECORD;
+BEGIN
+	--buat table seusai pegawai
+	EXECUTE '
+	CREATE TABLE IF NOT EXISTS cat_rekrutmen_pegawai.ujian_pegawai_' || NEW.JADWAL_TES_ID || '
+	(
+		ujian_pegawai_daftar_id integer NOT NULL,
+		lowongan_id numeric NOT NULL,
+		ujian_pegawai_id bigint NOT NULL,
+		ujian_id bigint NOT NULL,
+		ujian_bank_soal_id bigint NOT NULL,
+		bank_soal_id integer NOT NULL,
+		ujian_tahap_id integer NOT NULL,
+		tipe_ujian_id integer NOT NULL,
+		pegawai_id numeric NOT NULL,
+		bank_soal_pilihan_id integer,
+		tanggal timestamp without time zone,
+		urut bigint,
+		last_create_date timestamp without time zone,
+		last_create_user character varying(100),
+		last_update_date timestamp without time zone,
+		last_update_user character varying(100),
+		CONSTRAINT ujian_pegawai_' || NEW.JADWAL_TES_ID || '_pkey PRIMARY KEY (ujian_pegawai_id)
+	)';
+	
+	EXECUTE '
+	DROP TRIGGER if exists uniquec_ujian_pegawai ON cat_rekrutmen_pegawai.ujian_pegawai_' || NEW.JADWAL_TES_ID || ';
+	';
+
+	EXECUTE '
+	CREATE TRIGGER uniquec_ujian_pegawai
+	  BEFORE INSERT
+	  ON cat_rekrutmen_pegawai.ujian_pegawai_' || NEW.JADWAL_TES_ID || '
+	  FOR EACH ROW
+	  EXECUTE PROCEDURE cat_rekrutmen_pegawai.unique_ujian_pegawai();
+	';
+
+	temprowid:= 0;
+	select case when count(1) > 0 then 1 else 0 end into temprowid
+	from formula_assesment_ujian_tahap
+	where formula_assesment_id = new.formula_assesment_id
+	and tipe_ujian_id not in (2001, 2002, 2003, 16, 43);
+	if temprowid > 0 then
+		--buat table esay pegawai
+		EXECUTE '
+		CREATE TABLE IF NOT EXISTS cat_rekrutmen_pegawai.ujian_pegawai_keterangan_' || NEW.JADWAL_TES_ID || '
+		(
+			ujian_pegawai_daftar_id integer NOT NULL,
+			lowongan_id numeric NOT NULL,
+			ujian_pegawai_id bigint NOT NULL,
+			ujian_id bigint NOT NULL,
+			ujian_bank_soal_id bigint NOT NULL,
+			bank_soal_id integer NOT NULL,
+			ujian_tahap_id integer NOT NULL,
+			tipe_ujian_id integer NOT NULL,
+			pegawai_id numeric NOT NULL,
+			keterangan character varying,
+			tanggal timestamp without time zone,
+			urut bigint,
+			last_create_date timestamp without time zone,
+			last_create_user character varying(100),
+			last_update_date timestamp without time zone,
+			last_update_user character varying(100),
+			CONSTRAINT ujian_pegawai_keterangan_' || NEW.JADWAL_TES_ID || '_pkey PRIMARY KEY (ujian_pegawai_id),
+			CONSTRAINT u_' || NEW.JADWAL_TES_ID || '_ujian_pegawai_keterangan UNIQUE (lowongan_id, pegawai_id, bank_soal_id)
+		)';
+	end if;
+
+	temprowid:= 0;
+	select case when count(1) > 0 then 1 else 0 end into temprowid
+	from formula_assesment_ujian_tahap
+	where formula_assesment_id = new.formula_assesment_id
+	and tipe_ujian_id in (16);
+	if temprowid > 0 then
+		--buat table esay pegawai
+		IF (SELECT COALESCE((SELECT 1 FROM pg_class where relname = 'ujian_kraepelin_id_seq_' || NEW.JADWAL_TES_ID || ''),0)) = 0
+		THEN
+			EXECUTE '
+			DROP SEQUENCE if exists cat_rekrutmen_pegawai.ujian_kraepelin_id_seq_' || NEW.JADWAL_TES_ID || ';
+			';
+			
+			EXECUTE '
+			CREATE SEQUENCE cat_rekrutmen_pegawai.ujian_kraepelin_id_seq_' || NEW.JADWAL_TES_ID || '
+			  INCREMENT 1
+			  MINVALUE 1
+			  MAXVALUE 9223372036854775807
+			  START 1
+			  CACHE 1;
+			ALTER TABLE cat_rekrutmen_pegawai.ujian_kraepelin_id_seq_' || NEW.JADWAL_TES_ID || '
+			  OWNER TO postgres;
+			';
+			
+			EXECUTE '
+			CREATE TABLE IF NOT EXISTS cat_rekrutmen_pegawai.ujian_kraepelin_' || NEW.JADWAL_TES_ID || '
+			(
+				ujian_pegawai_daftar_id integer NOT NULL,
+				lowongan_id numeric NOT NULL,
+				ujian_kraepelin_id bigint NOT NULL DEFAULT nextval(''cat_rekrutmen_pegawai.ujian_kraepelin_id_seq_' || NEW.JADWAL_TES_ID || '''::regclass),
+				ujian_id bigint NOT NULL,
+				ujian_tahap_id integer NOT NULL,
+				tipe_ujian_id integer NOT NULL,
+				pegawai_id numeric NOT NULL,
+				pakai_kraepelin_id integer NOT NULL,
+				x_data integer NOT NULL,
+				y_data integer NOT NULL,
+				nilai integer,
+				last_create_date timestamp without time zone,
+				last_create_user character varying(100),
+				last_update_date timestamp without time zone,
+				last_update_user character varying(100),
+				CONSTRAINT ujian_kraepelin_' || NEW.JADWAL_TES_ID || '_pkey PRIMARY KEY (ujian_kraepelin_id),
+				CONSTRAINT u_ujian_kraepelin_' || NEW.JADWAL_TES_ID || ' UNIQUE (ujian_id, pegawai_id, pakai_kraepelin_id, x_data, y_data)
+			)';
+		END IF;
+
+		IF (SELECT COALESCE((SELECT 1 FROM pg_class where relname = 'ujian_kraepelin_id_seq_latihan_' || NEW.JADWAL_TES_ID || ''),0)) = 0
+		THEN
+			EXECUTE '
+			DROP SEQUENCE if exists cat_rekrutmen_pegawai.ujian_kraepelin_id_seq_latihan_' || NEW.JADWAL_TES_ID || ';
+			';
+			
+			EXECUTE '
+			CREATE SEQUENCE cat_rekrutmen_pegawai.ujian_kraepelin_id_seq_latihan_' || NEW.JADWAL_TES_ID || '
+			  INCREMENT 1
+			  MINVALUE 1
+			  MAXVALUE 9223372036854775807
+			  START 1
+			  CACHE 1;
+			ALTER TABLE cat_rekrutmen_pegawai.ujian_kraepelin_id_seq_latihan_' || NEW.JADWAL_TES_ID || '
+			  OWNER TO postgres;
+			';
+			
+			EXECUTE '
+			CREATE TABLE IF NOT EXISTS cat_rekrutmen_pegawai.ujian_kraepelin_latihan_' || NEW.JADWAL_TES_ID || '
+			(
+				ujian_pegawai_daftar_id integer NOT NULL,
+				lowongan_id numeric NOT NULL,
+				ujian_kraepelin_id bigint NOT NULL DEFAULT nextval(''cat_rekrutmen_pegawai.ujian_kraepelin_id_seq_latihan_' || NEW.JADWAL_TES_ID || '''::regclass),
+				ujian_id bigint NOT NULL,
+				ujian_tahap_id integer NOT NULL,
+				tipe_ujian_id integer NOT NULL,
+				pegawai_id numeric NOT NULL,
+				pakai_kraepelin_id integer NOT NULL,
+				x_data integer NOT NULL,
+				y_data integer NOT NULL,
+				nilai integer,
+				last_create_date timestamp without time zone,
+				last_create_user character varying(100),
+				last_update_date timestamp without time zone,
+				last_update_user character varying(100),
+				CONSTRAINT ujian_kraepelin_latihan_' || NEW.JADWAL_TES_ID || '_pkey PRIMARY KEY (ujian_kraepelin_id),
+				CONSTRAINT u_ujian_kraepelin_latihan_' || NEW.JADWAL_TES_ID || ' UNIQUE (ujian_id, pegawai_id, pakai_kraepelin_id, x_data, y_data)
+			)';
+		END IF;
+	end if;
+
+	temprowid:= 0;
+	select case when count(1) > 0 then 1 else 0 end into temprowid
+	from formula_assesment_ujian_tahap
+	where formula_assesment_id = new.formula_assesment_id
+	and tipe_ujian_id in (43);
+	if temprowid > 0 then
+		--buat table krapelin new
+		IF (SELECT COALESCE((SELECT 1 FROM pg_class where relname = 'ujian_kraepelin_n_id_seq_' || NEW.JADWAL_TES_ID || ''),0)) = 0
+		THEN
+			EXECUTE '
+			DROP SEQUENCE if exists cat_rekrutmen_pegawai.ujian_kraepelin_n_id_seq_' || NEW.JADWAL_TES_ID || ';
+			';
+			
+			EXECUTE '
+			CREATE SEQUENCE cat_rekrutmen_pegawai.ujian_kraepelin_n_id_seq_' || NEW.JADWAL_TES_ID || '
+			  INCREMENT 1
+			  MINVALUE 1
+			  MAXVALUE 9223372036854775807
+			  START 1
+			  CACHE 1;
+			ALTER TABLE cat_rekrutmen_pegawai.ujian_kraepelin_n_id_seq_' || NEW.JADWAL_TES_ID || '
+			  OWNER TO postgres;
+			';
+			
+			EXECUTE '
+			CREATE TABLE IF NOT EXISTS cat_rekrutmen_pegawai.ujian_kraepelin_n_' || NEW.JADWAL_TES_ID || '
+			(
+				ujian_pegawai_daftar_id integer NOT NULL,
+				lowongan_id numeric NOT NULL,
+				ujian_kraepelin_id bigint NOT NULL DEFAULT nextval(''cat_rekrutmen_pegawai.ujian_kraepelin_n_id_seq_' || NEW.JADWAL_TES_ID || '''::regclass),
+				ujian_id bigint NOT NULL,
+				ujian_tahap_id integer NOT NULL,
+				tipe_ujian_id integer NOT NULL,
+				pegawai_id numeric NOT NULL,
+				pakai_kraepelin_id integer NOT NULL,
+				x_data integer NOT NULL,
+				y_data integer NOT NULL,
+				nilai integer,
+				last_create_date timestamp without time zone,
+				last_create_user character varying(100),
+				last_update_date timestamp without time zone,
+				last_update_user character varying(100),
+				CONSTRAINT ujian_kraepelin_n_' || NEW.JADWAL_TES_ID || '_pkey PRIMARY KEY (ujian_kraepelin_id),
+				CONSTRAINT u_ujian_kraepelin_n_' || NEW.JADWAL_TES_ID || ' UNIQUE (ujian_id, pegawai_id, pakai_kraepelin_id, x_data, y_data)
+			)';
+		END IF;
+	end if;
+
+	temprowid:= 0;
+	select case when count(1) > 0 then 1 else 0 end into temprowid
+	from formula_assesment_ujian_tahap
+	where formula_assesment_id = new.formula_assesment_id
+	and tipe_ujian_id in (28);
+	if temprowid > 0 then
+		-- pauli table
+		IF (SELECT COALESCE((SELECT 1 FROM pg_class where relname = 'ujian_pauli_id_seq_' || NEW.JADWAL_TES_ID || ''),0)) = 0
+		THEN
+			EXECUTE '
+			DROP SEQUENCE if exists cat_rekrutmen_pegawai.ujian_pauli_id_seq_' || NEW.JADWAL_TES_ID || ';
+			';
+			
+			EXECUTE '
+			CREATE SEQUENCE cat_rekrutmen_pegawai.ujian_pauli_id_seq_' || NEW.JADWAL_TES_ID || '
+			  INCREMENT 1
+			  MINVALUE 1
+			  MAXVALUE 9223372036854775807
+			  START 1
+			  CACHE 1;
+			ALTER TABLE cat_rekrutmen_pegawai.ujian_pauli_id_seq_' || NEW.JADWAL_TES_ID || '
+			  OWNER TO postgres;
+			';
+			
+			EXECUTE '
+			CREATE TABLE IF NOT EXISTS cat_rekrutmen_pegawai.ujian_pauli_' || NEW.JADWAL_TES_ID || '
+			(
+				ujian_pegawai_daftar_id integer NOT NULL,
+				lowongan_id numeric NOT NULL,
+				ujian_pauli_id bigint NOT NULL DEFAULT nextval(''cat_rekrutmen_pegawai.ujian_pauli_id_seq_' || NEW.JADWAL_TES_ID || '''::regclass),
+				ujian_id bigint NOT NULL,
+				ujian_tahap_id integer NOT NULL,
+				tipe_ujian_id integer NOT NULL,
+				pegawai_id numeric NOT NULL,
+				pakai_pauli_id integer NOT NULL,
+				x_data integer NOT NULL,
+				y_data integer NOT NULL,
+				nilai integer,
+				last_create_date timestamp without time zone,
+				last_create_user character varying(100),
+				last_update_date timestamp without time zone,
+				last_update_user character varying(100),
+				CONSTRAINT ujian_pauli_' || NEW.JADWAL_TES_ID || '_pkey PRIMARY KEY (ujian_pauli_id),
+				CONSTRAINT u_ujian_pauli_' || NEW.JADWAL_TES_ID || ' UNIQUE (ujian_id, pegawai_id, pakai_pauli_id, x_data, y_data)
+			)';
+		END IF;
+
+		IF (SELECT COALESCE((SELECT 1 FROM pg_class where relname = 'ujian_pauli_tanda_id_seq_' || NEW.JADWAL_TES_ID || ''),0)) = 0
+		THEN
+			EXECUTE '
+			DROP SEQUENCE if exists cat_rekrutmen_pegawai.ujian_pauli_tanda_id_seq_' || NEW.JADWAL_TES_ID || ';
+			';
+			
+			EXECUTE '
+			CREATE SEQUENCE cat_rekrutmen_pegawai.ujian_pauli_tanda_id_seq_' || NEW.JADWAL_TES_ID || '
+			  INCREMENT 1
+			  MINVALUE 1
+			  MAXVALUE 9223372036854775807
+			  START 1
+			  CACHE 1;
+			ALTER TABLE cat_rekrutmen_pegawai.ujian_pauli_tanda_id_seq_' || NEW.JADWAL_TES_ID || '
+			  OWNER TO postgres;
+			';
+			
+			EXECUTE '
+			CREATE TABLE IF NOT EXISTS cat_rekrutmen_pegawai.ujian_pauli_tanda_' || NEW.JADWAL_TES_ID || '
+			(
+				ujian_pegawai_daftar_id integer NOT NULL,
+				lowongan_id numeric NOT NULL,
+				ujian_pauli_tanda_id bigint NOT NULL DEFAULT nextval(''cat_rekrutmen_pegawai.ujian_pauli_tanda_id_seq_' || NEW.JADWAL_TES_ID || '''::regclass),
+				ujian_id bigint NOT NULL,
+				ujian_tahap_id integer NOT NULL,
+				tipe_ujian_id integer NOT NULL,
+				pegawai_id numeric NOT NULL,
+				pakai_pauli_id integer NOT NULL,
+				nomor integer NOT NULL,
+				x_data integer NOT NULL,
+				y_data integer NOT NULL,
+				kolom1 integer NOT NULL,
+				kolom2 integer NOT NULL,
+				kolom3 integer NOT NULL,
+				last_create_date timestamp without time zone,
+				last_create_user character varying(100),
+				last_update_date timestamp without time zone,
+				last_update_user character varying(100),
+				CONSTRAINT ujian_pauli_tanda_' || NEW.JADWAL_TES_ID || '_pkey PRIMARY KEY (ujian_pauli_tanda_id),
+				CONSTRAINT u_ujian_pauli_tanda_' || NEW.JADWAL_TES_ID || ' UNIQUE (ujian_id, pegawai_id, pakai_pauli_id, nomor, x_data, y_data)
+			)';
+		END IF;
+		-- pauli table
+	end if;
+
+	temprowid:= 0;
+	select case when count(1) > 0 then 1 else 0 end into temprowid
+	from formula_assesment_ujian_tahap
+	where formula_assesment_id = new.formula_assesment_id
+	and tipe_ujian_id in (1, 2, 8, 9, 10, 11, 12, 13, 14, 15);
+	if temprowid > 0 then
+		--buat table seusai pegawai latihan
+		EXECUTE '
+		CREATE TABLE IF NOT EXISTS cat_rekrutmen_pegawai.ujian_pegawai_latihan_' || NEW.JADWAL_TES_ID || '
+		(
+			ujian_pegawai_daftar_id integer NOT NULL,
+			lowongan_id numeric NOT NULL,
+			ujian_pegawai_id bigint NOT NULL,
+			ujian_id bigint NOT NULL,
+			ujian_bank_soal_id bigint NOT NULL,
+			bank_soal_id integer NOT NULL,
+			ujian_tahap_id integer NOT NULL,
+			tipe_ujian_id integer NOT NULL,
+			pegawai_id numeric NOT NULL,
+			bank_soal_pilihan_id integer,
+			tanggal timestamp without time zone,
+			urut bigint,
+			last_create_date timestamp without time zone,
+			last_create_user character varying(100),
+			last_update_date timestamp without time zone,
+			last_update_user character varying(100),
+			CONSTRAINT ujian_pegawai_latihan_' || NEW.JADWAL_TES_ID || '_pkey PRIMARY KEY (ujian_pegawai_id)
+		)';
+		
+		EXECUTE '
+		DROP TRIGGER if exists uniquec_ujian_pegawai_latihan ON cat_rekrutmen_pegawai.ujian_pegawai_latihan_' || NEW.JADWAL_TES_ID || ';
+		';
+		
+		EXECUTE '
+		CREATE TRIGGER uniquec_ujian_pegawai_latihan
+		  BEFORE INSERT
+		  ON cat_rekrutmen_pegawai.ujian_pegawai_latihan_' || NEW.JADWAL_TES_ID || '
+		  FOR EACH ROW
+		  EXECUTE PROCEDURE cat_rekrutmen_pegawai.unique_ujian_pegawai_latihan();
+		';
+	end if;
+	
+	RETURN NEW;
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+ALTER FUNCTION public.buat_table_ujian_p()
+  OWNER TO postgres;
+
+CREATE OR REPLACE FUNCTION cat_rekrutmen.ujian_hapus_p()
+  RETURNS trigger AS
+$BODY$
+DECLARE
+temprowid integer;
+tempperiode CHARACTER VARYING(50);
+tempinfo TEXT;
+tempquery TEXT;
+BEGIN
+
+	DELETE FROM cat_rekrutmen.ujian_bank_soal WHERE ujian_id = OLD.ujian_id;
+	DELETE FROM cat_rekrutmen.ujian_bank_soal_latihan WHERE ujian_id = OLD.ujian_id;
+	DELETE FROM cat_rekrutmen.ujian_pegawai_daftar WHERE ujian_id = OLD.ujian_id;
+	DELETE FROM cat_rekrutmen.ujian_tahap WHERE ujian_id = OLD.ujian_id;
+	DELETE FROM cat_rekrutmen.ujian_tahap_latihan WHERE ujian_id = OLD.ujian_id;
+	DELETE FROM cat_rekrutmen.ujian_tahap_pegawai WHERE ujian_id = OLD.ujian_id;
+	DELETE FROM cat_rekrutmen.ujian_tahap_pegawai_latihan WHERE ujian_id = OLD.ujian_id;
+	DELETE FROM cat_rekrutmen.ujian_tahap_status_ujian WHERE ujian_id = OLD.ujian_id;
+	DELETE FROM cat_rekrutmen.ujian_tahap_status_ujian_latihan WHERE ujian_id = OLD.ujian_id;
+	DELETE FROM cat_rekrutmen.ujian_tahap_status_ujian_petunjuk WHERE ujian_id = OLD.ujian_id;
+	DELETE FROM cat_rekrutmen.ujian_tahap_status_ujian_petunjuk_latihan WHERE ujian_id = OLD.ujian_id;
+
+	IF (SELECT COALESCE((SELECT 1 FROM pg_class where relname = 'ujian_pegawai_' || OLD.lowongan_id || ''),0)) = 1
+	THEN
+		EXECUTE ('DELETE FROM cat_rekrutmen_pegawai.ujian_pegawai_' || OLD.lowongan_id || ' WHERE ujian_id = ' || OLD.ujian_id || ' ');
+		EXECUTE ('DELETE FROM cat_rekrutmen_pegawai.ujian_pegawai_keterangan_' || OLD.lowongan_id || ' WHERE ujian_id = ' || OLD.ujian_id || ' ');
+		EXECUTE ('SELECT COUNT(1) FROM cat_rekrutmen_pegawai.ujian_pegawai_' || OLD.lowongan_id || ' WHERE ujian_id = ' || OLD.ujian_id || ' ') into temprowid;
+		
+		IF temprowid = 0 THEN
+		EXECUTE ('DROP TABLE cat_rekrutmen_pegawai.ujian_pegawai_' || OLD.lowongan_id || '');
+		EXECUTE ('DROP TABLE IF EXISTS cat_rekrutmen_pegawai.ujian_pegawai_keterangan_' || OLD.lowongan_id || '');
+		--raise notice 'sql %',temprowid;
+		END IF;
+	END IF;
+
+	IF (SELECT COALESCE((SELECT 1 FROM pg_class where relname = 'ujian_kraepelin_' || OLD.lowongan_id || ''),0)) = 1
+	THEN
+		EXECUTE ('DELETE FROM cat_rekrutmen_pegawai.ujian_kraepelin_' || OLD.lowongan_id || ' WHERE ujian_id = ' || OLD.ujian_id || ' ');
+		EXECUTE ('SELECT COUNT(1) FROM cat_rekrutmen_pegawai.ujian_kraepelin_' || OLD.lowongan_id || ' WHERE ujian_id = ' || OLD.ujian_id || ' ') into temprowid;
+		
+		IF temprowid = 0 THEN
+		EXECUTE ('DROP TABLE cat_rekrutmen_pegawai.ujian_kraepelin_' || OLD.lowongan_id || '');
+		
+		EXECUTE '
+		DROP SEQUENCE cat_rekrutmen_pegawai.ujian_kraepelin_id_seq_' || OLD.lowongan_id || ';
+		';
+		--raise notice 'sql %',temprowid;
+		END IF;
+	END IF;
+
+	IF (SELECT COALESCE((SELECT 1 FROM pg_class where relname = 'ujian_kraepelin_n_' || OLD.lowongan_id || ''),0)) = 1
+	THEN
+		EXECUTE ('DELETE FROM cat_rekrutmen_pegawai.ujian_kraepelin_n_' || OLD.lowongan_id || ' WHERE ujian_id = ' || OLD.ujian_id || ' ');
+		EXECUTE ('SELECT COUNT(1) FROM cat_rekrutmen_pegawai.ujian_kraepelin_n_' || OLD.lowongan_id || ' WHERE ujian_id = ' || OLD.ujian_id || ' ') into temprowid;
+		
+		IF temprowid = 0 THEN
+		EXECUTE ('DROP TABLE cat_rekrutmen_pegawai.ujian_kraepelin_n_' || OLD.lowongan_id || '');
+		
+		EXECUTE '
+		DROP SEQUENCE cat_rekrutmen_pegawai.ujian_kraepelin_n_id_seq_' || OLD.lowongan_id || ';
+		';
+		--raise notice 'sql %',temprowid;
+		END IF;
+	END IF;
+
+	--pauli
+	IF (SELECT COALESCE((SELECT 1 FROM pg_class where relname = 'ujian_pauli_' || OLD.lowongan_id || ''),0)) = 1
+	THEN
+		EXECUTE ('DELETE FROM cat_rekrutmen_pegawai.ujian_pauli_' || OLD.lowongan_id || ' WHERE ujian_id = ' || OLD.ujian_id || ' ');
+		EXECUTE ('SELECT COUNT(1) FROM cat_rekrutmen_pegawai.ujian_pauli_' || OLD.lowongan_id || ' WHERE ujian_id = ' || OLD.ujian_id || ' ') into temprowid;
+		
+		IF temprowid = 0 THEN
+		EXECUTE ('DROP TABLE cat_rekrutmen_pegawai.ujian_pauli_' || OLD.lowongan_id || '');
+		
+		EXECUTE '
+		DROP SEQUENCE cat_rekrutmen_pegawai.ujian_pauli_id_seq_' || OLD.lowongan_id || ';
+		';
+
+		IF (SELECT COALESCE((SELECT 1 FROM pg_class where relname = 'ujian_pauli_id_seq_latihan_' || OLD.lowongan_id || ''),0)) = 1
+		THEN
+			EXECUTE '
+				DROP SEQUENCE cat_rekrutmen_pegawai.ujian_pauli_id_seq_latihan_' || OLD.lowongan_id || ';
+			';
+			--raise notice 'sql %',temprowid;
+			END IF;
+		END IF;
+	END IF;
+
+	IF (SELECT COALESCE((SELECT 1 FROM pg_class where relname = 'ujian_pauli_tanda_' || OLD.lowongan_id || ''),0)) = 1
+	THEN
+		EXECUTE ('DELETE FROM cat_rekrutmen_pegawai.ujian_pauli_tanda_' || OLD.lowongan_id || ' WHERE ujian_id = ' || OLD.ujian_id || ' ');
+		EXECUTE ('SELECT COUNT(1) FROM cat_rekrutmen_pegawai.ujian_pauli_tanda_' || OLD.lowongan_id || ' WHERE ujian_id = ' || OLD.ujian_id || ' ') into temprowid;
+		
+		IF temprowid = 0 THEN
+		EXECUTE ('DROP TABLE cat_rekrutmen_pegawai.ujian_pauli_tanda_' || OLD.lowongan_id || '');
+		
+		EXECUTE '
+		DROP SEQUENCE cat_rekrutmen_pegawai.ujian_pauli_tanda_id_seq_' || OLD.lowongan_id || ';
+		';
+		END IF;
+	END IF;
+	--pauli
+	
+	IF (SELECT COALESCE((SELECT 1 FROM pg_class where relname = 'ujian_pegawai_latihan_' || OLD.lowongan_id || ''),0)) = 1
+	THEN
+		EXECUTE ('DELETE FROM cat_rekrutmen_pegawai.ujian_pegawai_latihan_' || OLD.lowongan_id || ' WHERE ujian_id = ' || OLD.ujian_id || ' ');
+		EXECUTE ('SELECT COUNT(1) FROM cat_rekrutmen_pegawai.ujian_pegawai_latihan_' || OLD.lowongan_id || ' WHERE ujian_id = ' || OLD.ujian_id || ' ') into temprowid;
+		
+		IF temprowid = 0 THEN
+		EXECUTE ('DROP TABLE cat_rekrutmen_pegawai.ujian_pegawai_latihan_' || OLD.lowongan_id || '');
+		
+		--raise notice 'sql %',temprowid;
+		END IF;
+	END IF;
+
+	IF (SELECT COALESCE((SELECT 1 FROM pg_class where relname = 'ujian_kraepelin_latihan_' || OLD.lowongan_id || ''),0)) = 1
+	THEN
+		EXECUTE ('DELETE FROM cat_rekrutmen_pegawai.ujian_kraepelin_latihan_' || OLD.lowongan_id || ' WHERE ujian_id = ' || OLD.ujian_id || ' ');
+		EXECUTE ('SELECT COUNT(1) FROM cat_rekrutmen_pegawai.ujian_kraepelin_latihan_' || OLD.lowongan_id || ' WHERE ujian_id = ' || OLD.ujian_id || ' ') into temprowid;
+		
+		IF temprowid = 0 THEN
+		EXECUTE ('DROP TABLE cat_rekrutmen_pegawai.ujian_kraepelin_latihan_' || OLD.lowongan_id || '');
+		
+		EXECUTE '
+			DROP SEQUENCE cat_rekrutmen_pegawai.ujian_kraepelin_id_seq_latihan_' || OLD.lowongan_id || ';
+		';
+			
+		--raise notice 'sql %',temprowid;
+		END IF;
+	END IF;
+	
+	RETURN OLD;
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+ALTER FUNCTION cat_rekrutmen.ujian_hapus_p()
+  OWNER TO postgres;
