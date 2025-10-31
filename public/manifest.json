@@ -1,0 +1,17 @@
+{
+    "name": "eOffice Asdp",
+    "short_name": "eASDP",
+    "start_url": "app",
+    "background_color": "#6777ef",
+    "description": "EOffice PT ASDP",
+    "display": "fullscreen",
+    "theme_color": "#6777ef",
+    "icons": [
+        {
+            "src": "/images/logopwa.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}

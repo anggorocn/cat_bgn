@@ -1,0 +1,152 @@
+body {
+    background: url(/images/bg-login.jpg);
+    background-size: 100% 100vh;
+    position: relative;
+}
+@media screen and (max-width:767px) {
+    body {
+        background: url(/images/bg-login.jpg) center center no-repeat;
+        background-size: auto 100vh;
+    }
+}
+.container {
+    display: flex;
+    justify-content: center; /* align horizontal */
+    align-items: center; /* align vertical */
+
+    height: 100vh;
+}
+.logo-login {
+    position: absolute;
+    background: #FFFFFF;
+    padding: 15px 30px;
+
+    -webkit-border-radius: 0px;
+    -webkit-border-bottom-right-radius: 30px;
+    -moz-border-radius: 0px;
+    -moz-border-radius-bottomright: 30px;
+    border-radius: 0px;
+    border-bottom-right-radius: 30px;
+}
+.logo-login img {
+    width: 100px;
+}
+.form-signin {
+    background: #FFFFFF;
+    padding: 30px 30px;
+
+    -webkit-border-radius: 30px; 
+    -moz-border-radius: 30px;
+    border-radius: 30px; 
+
+    
+}
+.form-signin button[type="submit"] {
+    margin-bottom: inherit;
+    height: 60px;
+    line-height: 60px;
+    /*background: #1d388d;*/
+
+    -webkit-border-radius: 20px; 
+    -moz-border-radius: 20px;
+    border-radius: 20px; 
+
+    font-size: 18px;
+    letter-spacing: 1px;
+    font-weight: bold;
+    padding: 0 24px;
+}
+.form-signin button[type="button"] {
+    margin-bottom: inherit;
+    height: 60px;
+    line-height: 60px;
+    /*background: #1d388d;*/
+
+    -webkit-border-radius: 20px; 
+    -moz-border-radius: 20px;
+    border-radius: 20px; 
+
+    font-size: 18px;
+    letter-spacing: 1px;
+    font-weight: bold;
+    padding: 0 24px;
+}
+.form-signin input[type=text],
+.form-signin input[type=password] {
+    border: 1px solid #dadada;
+
+    -webkit-border-radius: 20px; 
+    -moz-border-radius: 20px;
+    border-radius: 20px; 
+
+    padding: 0 30px 0 50px;
+    position: relative;
+    margin-bottom: 0px;
+
+    width: 22vw;
+    height: 60px;
+    line-height: 60px;
+}
+@media screen and (max-width:767px) {
+    .form-signin input[type=text],
+    .form-signin input[type=password] {
+        width: 100%;
+    }
+}
+.logo-eoffice-login {
+    margin-bottom: 30px;
+}
+.logo-eoffice-login img {
+    width: 250px;
+}
+.form-group {
+    position: relative;
+}
+.form-group i {
+    cursor: pointer; 
+    position: absolute; 
+    right: 15px; 
+    top: 23px;
+    z-index: 2;
+}
+.ikon-input {
+    position: absolute;
+    top: 17px;
+    left: 15px;
+    z-index: 3;
+}
+.ikon-input img {
+    width: 25px;
+}
+.copyright {
+    position: absolute;
+    bottom: 50px;
+}
+
+.wrapper-signin {
+    width: calc(22vw + 90px);
+
+    background: #FFFFFF;
+    padding: 30px 30px;
+    -webkit-border-radius: 30px;
+    -moz-border-radius: 30px;
+    border-radius: 30px;
+
+    padding: 15px 0px;
+}
+.btn-tautan {
+    height: 60px;
+    line-height: 60px;
+
+    -webkit-border-radius: 20px;
+    -moz-border-radius: 20px;
+    border-radius: 20px;
+
+    font-size: 15px;
+    letter-spacing: 1px;
+    font-weight: bold;
+    padding: 0 10px;
+
+    width: 100%;
+    /*margin-bottom: 15px;*/
+}
